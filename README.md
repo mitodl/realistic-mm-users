@@ -1,1 +1,1 @@
-Usage: `python generate.py --help`
+Usage: `python3 generate.py --help`
