@@ -1,0 +1,40 @@
+[
+    {
+        "title": "Digital Learning", 
+        "description": "Learn stuff about digital learning.",
+        "courses": [
+			{
+				"title": "Digital Learning 100",
+				"position_in_program": 1,
+				"description": "An introductory course to Digital Learning"
+			}, {
+				"title": "Digital Learning 200",
+				"position_in_program": 2,
+				"description": "A more advanced course in Digital Learning"
+			}, {
+				"title": "Digital Learning 300",
+				"position_in_program": 3,
+				"description": "The most advancedest course in Digital Learning"
+			}
+		]
+	}, {
+        "title": "Analog Learning", 
+        "description": "Learn stuff about analog learning.",
+        "courses": [
+			{
+				"title": "Analog Learning 100",
+				"position_in_program": 1,
+				"description": "An introductory course to Analog Learning"
+			}, {
+				"title": "Analog Learning 200",
+				"position_in_program": 2,
+				"description": "A more advanced course in Analog Learning"
+			}, {
+				"title": "Analog Learning 300",
+				"position_in_program": 3,
+				"description": "The most advancedest course in Analog Learning"
+			}
+			
+		]
+	}
+]
