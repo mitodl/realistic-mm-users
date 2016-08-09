@@ -1,3 +1,4 @@
+import os
 import json
 import random
 from datetime import datetime
@@ -76,3 +77,8 @@ def case_insensitive_lookup(d, key_to_find):
 
 def filter_dict_keys(orig_dict, keys_to_keep):
     return {key: orig_dict[key] for key in keys_to_keep}
+
+
+def create_dir_if_none_exists(dir_path):
+    if not os.path.isdir(dir_path):
+        os.makedirs(dir_path)

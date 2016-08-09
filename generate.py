@@ -14,7 +14,8 @@ from utils import (
     random_key,
     random_n_up_to_limit,
     incrementally_split_list,
-    random_iterable_index_range
+    random_iterable_index_range,
+    create_dir_if_none_exists,
 )
 from randomuser_client import (
     get_all_user_api_results,
@@ -36,11 +37,13 @@ from settings import (
 )
 
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+RESULT_DIR_NAME = 'data'
+RESULT_DIR = os.path.join(PACKAGE_DIR, RESULT_DIR_NAME)
 BASE_PROGRAM_DATA_PATH = os.path.join(PACKAGE_DIR, 'settings/base_program_data.json')
-RESULT_PROGRAM_DATA_PATH = os.path.join(PACKAGE_DIR, 'data/realistic_program_data.json')
-USER_DATA_PATH = os.path.join(PACKAGE_DIR, 'data/realistic_user_data.json')
-API_RESULT_DATA_PATH = os.path.join(PACKAGE_DIR, 'data/randomuser_results.json')
-API_METADATA_PATH = os.path.join(PACKAGE_DIR, 'data/randomuser_results_metadata.json')
+RESULT_PROGRAM_DATA_PATH = os.path.join(RESULT_DIR, 'realistic_program_data.json')
+USER_DATA_PATH = os.path.join(RESULT_DIR, 'realistic_user_data.json')
+API_RESULT_DATA_PATH = os.path.join(RESULT_DIR, 'randomuser_results.json')
+API_METADATA_PATH = os.path.join(RESULT_DIR, 'randomuser_results_metadata.json')
 
 NOW = datetime.now()
 
@@ -198,12 +201,12 @@ def build_full_program_data():
 
 def edit_full_user_data(all_user_data):
     """
-    Makes some changes to user data after API results come back
+    Makes changes to user data after API results are parsed and the user data is in the correct format
     """
     user_count = len(all_user_data)
     
     # Change set of users to have a birth country different from their current country
-    group_indices = random_n_up_to_limit(6, user_count)
+    group_indices = random_n_up_to_limit(int(user_count * 0.1), user_count)
     for i in group_indices:
         user_data = all_user_data[i]
         birth_country = user_data['birth_country']
@@ -291,13 +294,19 @@ def generate_user_and_program_data(api_result_data):
     write_json_to_file(user_data, USER_DATA_PATH)
 
 
-parser = argparse.ArgumentParser(description='Generate ')
+parser = argparse.ArgumentParser(description='''
+    Queries randomuser.me and generates realistic user and program data for use in Micromasters.
+
+    Realistic user and program data will be saved as JSON. The script will also save metadata and results of
+     requests to randomuser.me. Result JSON files will be saved in the '{}' directory.
+'''.format(RESULT_DIR_NAME))
 parser.add_argument('--create-from-api', action='store_true', help='Generate data from new randomuser.me API results')
 parser.add_argument('--save-api-results', action='store_true', help='Save randomuser.me API results')
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    create_dir_if_none_exists(RESULT_DIR)
     api_results_exist = os.path.isfile(API_RESULT_DATA_PATH)
     if not api_results_exist or args.create_from_api or args.save_api_results:
         # save results if the flag was set or if the results don't exist yet

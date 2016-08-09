@@ -47,7 +47,7 @@ def create_param_groups():
 def api_param_iter():
     results_count_param = 'results={}'.format(USER_COUNT_PER_GROUP)
     for api_param_group in create_param_groups():
-        nationality_param = next(filter(lambda param: 'nat=' in param, api_param_group))
+        nationality_param = filter(lambda param: 'nat=' in param, api_param_group)[0]
         preferred_lang_param = PREFERRED_LANG_MAP[nationality_param]
         yield '&'.join(api_param_group + (results_count_param, ))
 
