@@ -1,13 +1,10 @@
-import os
 from utils import load_json_from_file
-
-
-PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
-FIELDS_OF_STUDY_PATH = os.path.join(PACKAGE_DIR, 'fields_of_study.json')
-US_STATE_CODE_MAP = os.path.join(PACKAGE_DIR, 'us_states.json')
-CANADA_STATE_CODE_MAP = os.path.join(PACKAGE_DIR, 'canada_states.json')
-SPAIN_STATE_CODE_MAP = os.path.join(PACKAGE_DIR, 'spain_states.json')
-
+from path import (
+    FIELDS_OF_STUDY_PATH,
+    US_STATE_CODE_MAP,
+    CANADA_STATE_CODE_MAP,
+    SPAIN_STATE_CODE_MAP,
+)
 
 # Course settings
 COURSE_YEARS_TO_FILL_IN = 2
@@ -15,7 +12,6 @@ COURSE_RUN_MONTH_RANGES = [(1, 5), (8, 12)]
 COURSE_DAY = 15
 ENROLLMENT_DELTA = dict(days=14)
 UPGRADE_DELTA = dict(days=7)
-
 
 FIELDS_OF_STUDY = load_json_from_file(FIELDS_OF_STUDY_PATH)
 DEGREES = {
@@ -66,9 +62,7 @@ COUNTRY_STATE_CODE_MAP = {
 }
 
 COPY_TO_FIELDS = [
-    ('country', 'birth_country'),
-    ('state_or_territory', 'birth_state_or_territory'),
-    ('city', 'birth_city'),
+    ('country', 'nationality'),
     ('first_name', 'preferred_name'),
     ('first_name', 'edx_name')
 ]
