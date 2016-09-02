@@ -63,6 +63,7 @@ COUNTRY_STATE_CODE_MAP = {
 
 COPY_TO_FIELDS = [
     ('country', 'nationality'),
+    ('country', 'birth_country'),
     ('first_name', 'preferred_name'),
     ('first_name', 'edx_name')
 ]
