@@ -1,9 +1,8 @@
 import requests
 from datetime import datetime
 from itertools import product
-from collections import OrderedDict
 from utils import (
-    datetime_from_epoch,
+    date_from_randomuser_dob,
     increment_year,
     year_diff,
     case_insensitive_lookup,
@@ -62,7 +61,7 @@ def parse_gender(gender_value):
 def parse_randomuser_data(user, now=None):
     # TODO: profile pictures
     now = now or datetime.now()
-    dob = datetime_from_epoch(user['dob']).date()
+    dob = date_from_randomuser_dob(user['dob'])
     if year_diff(dob, now) < MIN_AGE:
         # Coerce < 18 y/o users to be older. Randomly assign 18, 22, or 30 years old
         dob = increment_year(now, random_item_from_iterable([age * -1 for age in GRAD_AGES])).date()

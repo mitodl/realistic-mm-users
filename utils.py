@@ -22,6 +22,11 @@ def datetime_from_epoch(epoch_time):
     return datetime.fromtimestamp(epoch_time)
 
 
+def date_from_randomuser_dob(dob):
+    dob_date = dob.split(' ')[0]
+    return datetime.strptime(dob_date, '%Y-%m-%d').date()
+
+
 def year_diff(start_date, end_date):
     return relativedelta(end_date, start_date).years
 

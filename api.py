@@ -202,7 +202,11 @@ def edit_full_user_data(all_user_data):
             data for data in all_user_data if
             data['country'] == new_country
         ])
-        user_data['nationality'] = user_from_new_country['country']
+        user_data.update({
+            'country': user_from_new_country['country'],
+            'state_or_territory': user_from_new_country['state_or_territory'],
+            'city': user_from_new_country['city']
+        })
         all_user_data[i] = user_data
 
     return all_user_data
