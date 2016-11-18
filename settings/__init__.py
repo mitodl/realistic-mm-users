@@ -67,11 +67,3 @@ COPY_TO_FIELDS = [
     ('first_name', 'preferred_name'),
     ('first_name', 'edx_name')
 ]
-
-STATIC_FIELDS = {
-    'account_privacy': 'private',
-    'edx_requires_parental_consent': False,
-    'email_optin': True,
-    'filled_out': True,
-    'has_profile_image': False,
-}

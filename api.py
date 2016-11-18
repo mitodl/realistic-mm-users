@@ -26,7 +26,6 @@ from settings import (
     EMPLOYMENT_YEAR_LENGTH,
     COUNTRY_STATE_CODE_MAP,
     COPY_TO_FIELDS,
-    STATIC_FIELDS
 )
 from path import BASE_PROGRAM_DATA_PATH
 
@@ -71,7 +70,6 @@ def create_education_record(user, dob, degree_info):
         'school_city': user['city'],
         'school_state_or_territory': user['state_or_territory'],
         'school_country': user['country'],
-        'online_degree': False,
     }
     if degree_info['name'] != 'High school':
         education_record['field_of_study'] = random_key(FIELDS_OF_STUDY)
@@ -119,7 +117,6 @@ def create_employment_records(user):
 
 def create_user_from_result(user):
     user = parse_randomuser_data(user, NOW)
-    user.update(STATIC_FIELDS)
     for copy_tuple in COPY_TO_FIELDS:
         user[copy_tuple[1]] = user[copy_tuple[0]]
     user['education'] = create_education_records(user)
@@ -132,44 +129,35 @@ def create_user_from_result(user):
 def create_enrollment(course_data, course_run_index):
     course_run = course_data['course_runs'][course_run_index]
     return {
-        "course_details": {
-            "course_id": course_run['edx_course_key'],
-            "invite_only": False
-        },
-        "created": course_run['start_date'],
-        "is_active": True,
-        "mode": "verified"
+        "edx_course_key": course_run['edx_course_key']
     }
 
 
-def create_certificate(course_data, course_run_index, grade_range=(60, 100)):
+def create_grade(course_data, course_run_index, grade_range=(60, 100)):
     course_run = course_data['course_runs'][course_run_index]
     return {
-        "course_id": course_run['edx_course_key'],
-        "certificate_type": "verified",
-        "status": "downloadable",
-        "download_url": "http://www.example.com/",
+        "edx_course_key": course_run['edx_course_key'],
         "grade": "{0:.2f}".format(randint(*grade_range) / 100)
     }
 
 
-def create_edx_data_set(courses_data, num_enrollments=0, num_certificates=None):
+def create_edx_data_set(courses_data, num_enrollments=0, num_grades=None):
     course_run_index_range = random_iterable_index_range(courses_data[0]['course_runs'], num_enrollments)
     course_indices = range(*course_run_index_range)
-    num_certificates = num_certificates or num_enrollments
+    num_grades = num_grades or num_enrollments
     return {
         'enrollments': [
             create_enrollment(course_data, course_indices[i])
             for i, course_data in enumerate(courses_data[0:num_enrollments])
-            ],
-        'certificates': [
-            create_certificate(course_data, course_indices[i])
-            for i, course_data in enumerate(courses_data[0:num_certificates])
-            ]
+        ],
+        'grades': [
+            create_grade(course_data, course_indices[i])
+            for i, course_data in enumerate(courses_data[0:num_grades])
+        ]
     }
 
 
-def create_n_enrollments_with_certs(all_program_data, num_courses_to_enroll=1):
+def create_n_enrollments_with_grades(all_program_data, num_courses_to_enroll=1):
     program_data = random_item_from_iterable(all_program_data)
     return create_edx_data_set(program_data['courses'], num_enrollments=num_courses_to_enroll)
 
@@ -217,22 +205,22 @@ def fill_in_cached_edx_data(all_user_data, all_program_data):
     indices = list(range(0, user_count))
     shuffle(indices)
 
-    ### Users w/ 2 courses, enrollment/cert in each
+    ### Users w/ 2 courses, enrollment/grade in each
     (group_indices, indices) = incrementally_split_list(indices, 0.4, user_count)
     for i in group_indices:
-        all_user_data[i].update(create_n_enrollments_with_certs(all_program_data, num_courses_to_enroll=2))
+        all_user_data[i].update(create_n_enrollments_with_grades(all_program_data, num_courses_to_enroll=2))
 
-    ### Users w/ 1 courses & enrollment/cert
+    ### Users w/ 1 courses & enrollment/grade
     (group_indices, indices) = incrementally_split_list(indices, 0.2, user_count)
     for i in group_indices:
-        all_user_data[i].update(create_n_enrollments_with_certs(all_program_data, num_courses_to_enroll=1))
+        all_user_data[i].update(create_n_enrollments_with_grades(all_program_data, num_courses_to_enroll=1))
 
-    ### Users w/ 3 courses, enrollment/cert in each
+    ### Users w/ 3 courses, enrollment/grade in each
     (group_indices, indices) = incrementally_split_list(indices, 0.1, user_count)
     for i in group_indices:
-        all_user_data[i].update(create_n_enrollments_with_certs(all_program_data, num_courses_to_enroll=3))
+        all_user_data[i].update(create_n_enrollments_with_grades(all_program_data, num_courses_to_enroll=3))
 
-    ### Users w/ 2 courses, enrollment in each, cert in one
+    ### Users w/ 2 courses, enrollment in each, grade in one
     (group_indices, indices) = incrementally_split_list(indices, 0.1, user_count)
     for i in group_indices:
         program_data = random_item_from_iterable(all_program_data)
@@ -243,21 +231,20 @@ def fill_in_cached_edx_data(all_user_data, all_program_data):
             create_enrollment(course_data, 0),
             create_enrollment(course_data, 1)
         ]
-        certificates = [create_certificate(course_data, 1)]
+        grades = [create_grade(course_data, 1)]
         all_user_data[i]['enrollments'] = enrollments
-        all_user_data[i]['certificates'] = certificates
+        all_user_data[i]['grades'] = grades
 
-    ### Users with 2 courses across 2 programs, enrollment/cert in each
+    ### Users with 2 courses across 2 programs, enrollment/grade in each
     (group_indices, indices) = incrementally_split_list(indices, 0.1, user_count)
     program_index_range = random_iterable_index_range(all_program_data, 2)
     selected_program_data = [all_program_data[i] for i in range(*program_index_range)]
-    # t=[]
     for i in group_indices:
-        user_edx_data = {'enrollments': [], 'certificates': []}
+        user_edx_data = {'enrollments': [], 'grades': []}
         for program_data in selected_program_data:
             new_edx_data = create_edx_data_set(program_data['courses'], num_enrollments=1)
             user_edx_data['enrollments'] += new_edx_data['enrollments']
-            user_edx_data['certificates'] += new_edx_data['certificates']
+            user_edx_data['grades'] += new_edx_data['grades']
         all_user_data[i].update(user_edx_data)
 
     return all_user_data
