@@ -124,7 +124,7 @@ def create_user_from_result(user):
     return user
 
 
-### Enrollment/Certificate generation functions
+### Enrollment/grade generation functions
 
 def create_enrollment(course_data, course_run_index):
     course_run = course_data['course_runs'][course_run_index]
