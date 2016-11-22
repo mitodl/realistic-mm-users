@@ -7,7 +7,7 @@ from path import (
 )
 
 # Course settings
-COURSE_YEARS_TO_FILL_IN = 2
+PAST_COURSE_RUNS_TO_CREATE = 3
 COURSE_RUN_MONTH_RANGES = [(1, 5), (8, 12)]
 COURSE_DAY = 15
 ENROLLMENT_DELTA = dict(days=14)

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from random import random, shuffle, randint
 import copy
+from operator import itemgetter
 
 from utils import (
     load_json_from_file,
@@ -15,7 +16,7 @@ from utils import (
 )
 from randomuser_client import parse_randomuser_data
 from settings import (
-    COURSE_YEARS_TO_FILL_IN,
+    PAST_COURSE_RUNS_TO_CREATE,
     COURSE_RUN_MONTH_RANGES,
     COURSE_DAY,
     ENROLLMENT_DELTA,
@@ -48,15 +49,20 @@ def create_course_run(course_data, start_date, end_date):
     }
 
 
-def create_course_runs(course_data):
+def create_past_course_runs(course_data):
     course_runs = []
-    for i in reversed(range(COURSE_YEARS_TO_FILL_IN)):
-        course_run_year = NOW.year - i
-        for month_range in COURSE_RUN_MONTH_RANGES:
-            start_date = datetime(year=course_run_year, month=month_range[0], day=COURSE_DAY)
-            end_date = datetime(year=course_run_year, month=month_range[1], day=COURSE_DAY)
-            if start_date < NOW:
+    index = 0
+    # Reverse sort month ranges so the script will try to create later months first
+    month_ranges = sorted(list(COURSE_RUN_MONTH_RANGES), key=itemgetter(0), reverse=True)
+
+    while len(course_runs) < PAST_COURSE_RUNS_TO_CREATE:
+        year = NOW.year - index
+        for month_range in month_ranges:
+            start_date = datetime(year=year, month=month_range[0], day=COURSE_DAY)
+            end_date = datetime(year=year, month=month_range[1], day=COURSE_DAY)
+            if end_date < NOW and len(course_runs) < PAST_COURSE_RUNS_TO_CREATE:
                 course_runs.append(create_course_run(course_data, start_date, end_date))
+        index += 1
     return course_runs
 
 
@@ -146,11 +152,11 @@ def create_edx_data_set(courses_data, num_enrollments=0, num_grades=None):
     course_indices = range(*course_run_index_range)
     num_grades = num_grades or num_enrollments
     return {
-        'enrollments': [
+        '_enrollments': [
             create_enrollment(course_data, course_indices[i])
             for i, course_data in enumerate(courses_data[0:num_enrollments])
         ],
-        'grades': [
+        '_grades': [
             create_grade(course_data, course_indices[i])
             for i, course_data in enumerate(courses_data[0:num_grades])
         ]
@@ -168,7 +174,7 @@ def build_full_program_data():
     program_data = load_json_from_file(BASE_PROGRAM_DATA_PATH)
     for program_index in range(len(program_data)):
         for course_data in program_data[program_index]['courses']:
-            course_data['course_runs'] = create_course_runs(course_data)
+            course_data['course_runs'] = create_past_course_runs(course_data)
     return program_data
 
 
@@ -205,20 +211,23 @@ def fill_in_cached_edx_data(all_user_data, all_program_data):
     indices = list(range(0, user_count))
     shuffle(indices)
 
-    ### Users w/ 2 courses, enrollment/grade in each
-    (group_indices, indices) = incrementally_split_list(indices, 0.4, user_count)
-    for i in group_indices:
-        all_user_data[i].update(create_n_enrollments_with_grades(all_program_data, num_courses_to_enroll=2))
-
     ### Users w/ 1 courses & enrollment/grade
     (group_indices, indices) = incrementally_split_list(indices, 0.2, user_count)
     for i in group_indices:
-        all_user_data[i].update(create_n_enrollments_with_grades(all_program_data, num_courses_to_enroll=1))
+        program_data = random_item_from_iterable(all_program_data)
+        all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=1))
+
+    ### Users w/ 2 courses, enrollment/grade in each
+    (group_indices, indices) = incrementally_split_list(indices, 0.4, user_count)
+    for i in group_indices:
+        program_data = random_item_from_iterable(all_program_data)
+        all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=2))
 
     ### Users w/ 3 courses, enrollment/grade in each
     (group_indices, indices) = incrementally_split_list(indices, 0.1, user_count)
     for i in group_indices:
-        all_user_data[i].update(create_n_enrollments_with_grades(all_program_data, num_courses_to_enroll=3))
+        program_data = random_item_from_iterable(all_program_data)
+        all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=3))
 
     ### Users w/ 2 courses, enrollment in each, grade in one
     (group_indices, indices) = incrementally_split_list(indices, 0.1, user_count)
@@ -232,19 +241,19 @@ def fill_in_cached_edx_data(all_user_data, all_program_data):
             create_enrollment(course_data, 1)
         ]
         grades = [create_grade(course_data, 1)]
-        all_user_data[i]['enrollments'] = enrollments
-        all_user_data[i]['grades'] = grades
+        all_user_data[i]['_enrollments'] = enrollments
+        all_user_data[i]['_grades'] = grades
 
     ### Users with 2 courses across 2 programs, enrollment/grade in each
     (group_indices, indices) = incrementally_split_list(indices, 0.1, user_count)
     program_index_range = random_iterable_index_range(all_program_data, 2)
     selected_program_data = [all_program_data[i] for i in range(*program_index_range)]
     for i in group_indices:
-        user_edx_data = {'enrollments': [], 'grades': []}
+        user_edx_data = {'_enrollments': [], '_grades': []}
         for program_data in selected_program_data:
             new_edx_data = create_edx_data_set(program_data['courses'], num_enrollments=1)
-            user_edx_data['enrollments'] += new_edx_data['enrollments']
-            user_edx_data['grades'] += new_edx_data['grades']
+            user_edx_data['_enrollments'] += new_edx_data['_enrollments']
+            user_edx_data['_grades'] += new_edx_data['_grades']
         all_user_data[i].update(user_edx_data)
 
     return all_user_data
