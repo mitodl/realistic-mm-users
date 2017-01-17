@@ -4,6 +4,7 @@ import random
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import dateutil.parser
+from itertools import product
 from random import randint
 
 
@@ -59,17 +60,23 @@ def split_list(list_to_split, first_chunk_size):
     return list_to_split[0:first_chunk_size], list_to_split[first_chunk_size:]
 
 
-def incrementally_split_list(remaining_list, percentage, original_list_size):
-    return split_list(remaining_list, int(original_list_size * percentage))
+def split_list_by_percent(remaining_list, percentage, original_list_size=None):
+    list_size = original_list_size or len(remaining_list)
+    return split_list(remaining_list, int(list_size * percentage))
+
+
+def chunk_list(list_to_chunk, chunk_size):
+    for i in range(0, len(list_to_chunk), chunk_size):
+        yield list_to_chunk[i:i + chunk_size]
 
 
 def list_section(list_to_section, start_index, num_items):
     return list_to_section[start_index:start_index+num_items]
 
 
-def random_iterable_index_range(iterable, num_items_desired):
-    start_index = randint(0, len(iterable) - num_items_desired)
-    return start_index, start_index + num_items_desired
+def get_random_range_from_iterable(iterable, range_len):
+    start_index = randint(0, len(iterable) - range_len)
+    return start_index, start_index + range_len
 
 
 def case_insensitive_lookup(d, key_to_find):
@@ -87,3 +94,8 @@ def filter_dict_keys(orig_dict, keys_to_keep):
 def create_dir_if_none_exists(dir_path):
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
+
+
+def list_product(list_of_lists):
+    """Gets cartesian product of elements in multiple lists"""
+    return list(product(*list_of_lists))

@@ -11,7 +11,7 @@ from api import (
     build_full_program_data,
     create_user_from_result,
     edit_full_user_data,
-    fill_in_cached_edx_data
+    fill_in_edx_data
 )
 from path import (
     API_RESULT_DATA_PATH,
@@ -36,7 +36,7 @@ def generate_user_and_program_data(api_result_data):
     write_json_to_file(program_data, RESULT_PROGRAM_DATA_PATH)
     user_data = [create_user_from_result(user_result) for user_result in api_result_data]
     user_data = edit_full_user_data(user_data)
-    user_data = fill_in_cached_edx_data(user_data, program_data)
+    user_data = fill_in_edx_data(user_data, program_data)
     write_json_to_file(user_data, USER_DATA_PATH)
 
 

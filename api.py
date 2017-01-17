@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from random import random, shuffle, randint
+from math import ceil
 import copy
 from operator import itemgetter
 
@@ -11,8 +12,9 @@ from utils import (
     random_item_from_iterable,
     random_key,
     random_n_up_to_limit,
-    incrementally_split_list,
-    random_iterable_index_range,
+    split_list_by_percent,
+    get_random_range_from_iterable,
+    chunk_list,
 )
 from randomuser_client import parse_randomuser_data
 from settings import (
@@ -27,6 +29,7 @@ from settings import (
     EMPLOYMENT_YEAR_LENGTH,
     COUNTRY_STATE_CODE_MAP,
     COPY_TO_FIELDS,
+    PCT_USERS_ENROLLED
 )
 from path import BASE_PROGRAM_DATA_PATH
 
@@ -148,8 +151,7 @@ def create_grade(course_data, course_run_index, grade_range=(60, 100)):
 
 
 def create_edx_data_set(courses_data, num_enrollments=0, num_grades=None):
-    course_run_index_range = random_iterable_index_range(courses_data[0]['course_runs'], num_enrollments)
-    course_indices = range(*course_run_index_range)
+    course_indices = range(0, num_enrollments)
     num_grades = num_grades or num_enrollments
     return {
         '_enrollments': [
@@ -206,54 +208,53 @@ def edit_full_user_data(all_user_data):
     return all_user_data
 
 
-def fill_in_cached_edx_data(all_user_data, all_program_data):
+def fill_in_edx_data(all_user_data, all_program_data):
     user_count = len(all_user_data)
-    indices = list(range(0, user_count))
-    shuffle(indices)
+    program_count = len(all_program_data)
+    user_list_indices = list(range(0, user_count))
+    shuffle(user_list_indices)
 
-    ### Users w/ 1 courses & enrollment/grade
-    (group_indices, indices) = incrementally_split_list(indices, 0.2, user_count)
-    for i in group_indices:
-        program_data = random_item_from_iterable(all_program_data)
-        all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=1))
+    (enrolled_indices, user_list_indices) = split_list_by_percent(user_list_indices, PCT_USERS_ENROLLED)
+    enrolled_user_count = len(enrolled_indices)
 
-    ### Users w/ 2 courses, enrollment/grade in each
-    (group_indices, indices) = incrementally_split_list(indices, 0.4, user_count)
-    for i in group_indices:
-        program_data = random_item_from_iterable(all_program_data)
-        all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=2))
-
-    ### Users w/ 3 courses, enrollment/grade in each
-    (group_indices, indices) = incrementally_split_list(indices, 0.1, user_count)
-    for i in group_indices:
-        program_data = random_item_from_iterable(all_program_data)
-        all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=3))
-
-    ### Users w/ 2 courses, enrollment in each, grade in one
-    (group_indices, indices) = incrementally_split_list(indices, 0.1, user_count)
-    for i in group_indices:
-        program_data = random_item_from_iterable(all_program_data)
-        # user_data = all_user_data[i]
-        course_data = program_data['courses'][0]
-        # Same course, 2 different course runs
-        enrollments = [
-            create_enrollment(course_data, 0),
-            create_enrollment(course_data, 1)
-        ]
-        grades = [create_grade(course_data, 1)]
-        all_user_data[i]['_enrollments'] = enrollments
-        all_user_data[i]['_grades'] = grades
-
-    ### Users with 2 courses across 2 programs, enrollment/grade in each
-    (group_indices, indices) = incrementally_split_list(indices, 0.1, user_count)
-    program_index_range = random_iterable_index_range(all_program_data, 2)
+    # Create users with 2 courses across 2 programs, enrollment/grade in each
+    (chosen_indices, enrolled_indices) = split_list_by_percent(enrolled_indices, 0.2, enrolled_user_count)
+    program_index_range = get_random_range_from_iterable(all_program_data, 2)
     selected_program_data = [all_program_data[i] for i in range(*program_index_range)]
-    for i in group_indices:
+    for i in chosen_indices:
         user_edx_data = {'_enrollments': [], '_grades': []}
         for program_data in selected_program_data:
             new_edx_data = create_edx_data_set(program_data['courses'], num_enrollments=1)
             user_edx_data['_enrollments'] += new_edx_data['_enrollments']
             user_edx_data['_grades'] += new_edx_data['_grades']
         all_user_data[i].update(user_edx_data)
+
+    # Split remaining users into evenly-sized chunks. Each chunk will be given enrollments/grades
+    # in the available programs.
+    remaining_user_count = len(enrolled_indices)
+    program_user_chunk_size = ceil(remaining_user_count / program_count)
+    program_user_index_chunks = list(chunk_list(enrolled_indices, program_user_chunk_size))
+    for program_index, program_data in enumerate(all_program_data):
+        program_user_indices = program_user_index_chunks[program_index]
+        program_user_count = len(program_user_indices)
+
+        # Create users w/ 1 courses & enrollment/grade
+        (chosen_indices, program_user_indices) = split_list_by_percent(program_user_indices, 0.3, program_user_count)
+        for i in chosen_indices:
+            all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=1))
+
+        # Create users w/ 2 courses, enrollment/grade in each
+        (chosen_indices, program_user_indices) = split_list_by_percent(program_user_indices, 0.5, program_user_count)
+        for i in chosen_indices:
+            all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=2))
+
+        # Create users w/ 3 courses, enrollment/grade in each
+        (chosen_indices, program_user_indices) = split_list_by_percent(program_user_indices, 0.1, program_user_count)
+        for i in chosen_indices:
+            all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=3))
+
+        # Create users w/ 2 courses, enrollment in each, grade in one
+        for i in program_user_indices:
+            all_user_data[i].update(create_edx_data_set(program_data['courses'], num_enrollments=2, num_grades=1))
 
     return all_user_data

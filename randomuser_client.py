@@ -1,14 +1,15 @@
 import requests
 from datetime import datetime
-from itertools import product
 from utils import (
     date_from_randomuser_dob,
     increment_year,
     year_diff,
     case_insensitive_lookup,
     random_item_from_iterable,
+    list_product
 )
 from settings import (
+    USERS_TO_GENERATE,
     COUNTRY_STATE_CODE_MAP,
     GRAD_AGES,
     MIN_AGE,
@@ -16,20 +17,27 @@ from settings import (
 
 
 RANDOMUSER_URL='https://randomuser.me/api/'
-USER_COUNT_PER_GROUP = 10
-USER_GROUP_SORTING = {
-    'nat': 0,
-    'gender': 1
-}
 USER_GROUP_PARAMS = {
     'nat': ['us', 'ca', 'es'],
     'gender': ['female', 'male']
+}
+USER_GROUP_SORTING = {
+    'nat': 0,
+    'gender': 1
 }
 PREFERRED_LANG_MAP = {
     'nat=us': 'en',
     'nat=ca': 'en',
     'nat=es': 'sp'
 }
+
+
+def determine_user_count_per_group():
+    """Calculates the number of users that should be generated for each group"""
+    return int(
+        USERS_TO_GENERATE/
+        len(list_product(USER_GROUP_PARAMS.values()))
+    )
 
 
 def create_param_groups():
@@ -39,11 +47,11 @@ def create_param_groups():
     group_params = sorted(USER_GROUP_PARAMS.items(), key=lambda t: USER_GROUP_SORTING.get(t[0], None))
     for param_name, value_list in group_params:
         querystrung_group_params.append(['{}={}'.format(param_name, value) for value in value_list])
-    return list(product(*querystrung_group_params))
+    return list_product(querystrung_group_params)
 
 
-def api_param_iter():
-    results_count_param = 'results={}'.format(USER_COUNT_PER_GROUP)
+def api_param_iter(user_count_per_group):
+    results_count_param = 'results={}'.format(user_count_per_group)
     for api_param_group in create_param_groups():
         # nationality_param = filter(lambda param: 'nat=' in param, api_param_group)[0]
         # preferred_lang_param = PREFERRED_LANG_MAP[nationality_param]
@@ -81,7 +89,8 @@ def parse_randomuser_data(user, now=None):
 
 
 def get_all_user_api_results():
-    param_groups = api_param_iter()
+    user_count_per_group = determine_user_count_per_group()
+    param_groups = api_param_iter(user_count_per_group)
     api_call_metadata = []
     user_results = []
     for params in param_groups:

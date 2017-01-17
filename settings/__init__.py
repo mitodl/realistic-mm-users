@@ -6,6 +6,11 @@ from path import (
     SPAIN_STATE_CODE_MAP,
 )
 
+USERS_TO_GENERATE = 120
+# Percentage of users to be enrolled in at least one course.
+# Users will be divided evenly among the fake programs.
+PCT_USERS_ENROLLED = 0.9
+
 # Course settings
 PAST_COURSE_RUNS_TO_CREATE = 3
 COURSE_RUN_MONTH_RANGES = [(1, 5), (8, 12)]
@@ -54,7 +59,6 @@ EMPLOYMENT = {
 }
 EMPLOYMENT_YEAR_LENGTH = 2
 
-# TODO: actual states? can just build json files for each country
 COUNTRY_STATE_CODE_MAP = {
     'US': load_json_from_file(US_STATE_CODE_MAP),
     'CA': load_json_from_file(CANADA_STATE_CODE_MAP),
